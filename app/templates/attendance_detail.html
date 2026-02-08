@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Attendance Detail{% endblock %}
+{% block content %}
+<div class="detail-view">
+    <div class="page-header">
+        <h1>📊 Attendance Details</h1>
+        <div class="header-actions">
+            <a href="{{ url_for('attendance.view_attendance') }}" class="btn btn-secondary">← Back</a>
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('attendance.edit_attendance', id=attendance.id) }}" class="btn btn-warning">✏️ Edit</a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="detail-card">
+        <h2>{{ student.name }} ({{ student.roll_no }})</h2>
+        <div class="detail-grid">
+            <div class="detail-item">
+                <label>Total Lectures:</label>
+                <span>{{ attendance.total_lectures }}</span>
+            </div>
+            <div class="detail-item">
+                <label>Attended:</label>
+                <span>{{ attendance.attended_lectures }}</span>
+            </div>
+            <div class="detail-item">
+                <label>Percentage:</label>
+                <span class="{% if attendance.has_shortage %}text-danger{% else %}text-success{% endif %}">
+                    {{ "%.2f"|format(attendance.attendance_percentage) }}%
+                </span>
+            </div>
+        </div>
+        {% if warning.has_warning %}
+        <div class="alert alert-warning">
+            <strong>{{ warning.message }}</strong>
+            <p>{{ warning.suggestion }}</p>
+        </div>
+        {% endif %}
+        {% if required_info.lectures_needed > 0 %}
+        <div class="ai-info">
+            <h4>🤖 AI Recommendation:</h4>
+            <p>{{ required_info.message }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

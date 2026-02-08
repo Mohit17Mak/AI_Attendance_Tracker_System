@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Edit Performance{% endblock %}
+{% block content %}
+<div class="form-container">
+    <h1>✏️ Edit Performance</h1>
+    <p class="subtitle">{{ student.roll_no }} - {{ student.name }}</p>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.student_id.label }}
+            {{ form.student_id(class="form-control", disabled=true) }}
+        </div>
+        <div class="form-group">
+            {{ form.subject_name.label }}
+            {{ form.subject_name(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.marks.label }}
+            {{ form.marks(class="form-control") }}
+            {% if form.marks.errors %}
+                <div class="error-msg">{{ form.marks.errors[0] }}</div>
+            {% endif %}
+        </div>
+        <div class="form-actions">
+            {{ form.submit(class="btn btn-primary") }}
+            <a href="{{ url_for('performance.view_performance') }}" class="btn btn-secondary">Cancel</a>
+            <form method="POST" action="{{ url_for('performance.delete_performance', id=performance.id) }}" style="display: inline;" onsubmit="return confirm('Delete this record?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-danger">🗑️ Delete</button>
+            </form>
+        </div>
+    </form>
+</div>
+{% endblock %}

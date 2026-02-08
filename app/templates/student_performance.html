@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Student Performance - {{ student.name }}{% endblock %}
+{% block content %}
+<div class="detail-view">
+    <div class="page-header">
+        <h1>📊 All Performance Records</h1>
+        <div class="header-actions">
+            <a href="{{ url_for('performance.view_performance') }}" class="btn btn-secondary">← Back</a>
+        </div>
+    </div>
+    <div class="detail-card">
+        <h2>{{ student.name }} ({{ student.roll_no }})</h2>
+        <div class="detail-grid">
+            <div class="detail-item">
+                <label>Average Marks:</label>
+                <span>{{ "%.2f"|format(average_marks) }}/100</span>
+            </div>
+            <div class="detail-item">
+                <label>Overall Remark:</label>
+                <span class="badge {% if overall_remark == 'Good' %}badge-success{% elif overall_remark == 'Average' %}badge-warning{% else %}badge-danger{% endif %}">
+                    {{ overall_remark }}
+                </span>
+            </div>
+        </div>
+        {% if performances %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Subject</th>
+                    <th>Marks</th>
+                    <th>Remark</th>
+                    {% if current_user.is_authenticated %}
+                    <th>Actions</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for perf in performances %}
+                <tr>
+                    <td>{{ perf.subject_name }}</td>
+                    <td>{{ "%.2f"|format(perf.marks) }}</td>
+                    <td>
+                        <span class="badge {% if perf.remark == 'Good' %}badge-success{% elif perf.remark == 'Average' %}badge-warning{% else %}badge-danger{% endif %}">
+                            {{ perf.remark }}
+                        </span>
+                    </td>
+                    {% if current_user.is_authenticated %}
+                    <td>
+                        <a href="{{ url_for('performance.edit_performance', id=perf.id) }}" class="btn btn-sm btn-warning">✏️</a>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted">No performance records found</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}500 - Error{% endblock %}
+{% block content %}
+<div class="error-page">
+    <h1>500</h1>
+    <h2>Server Error</h2>
+    <a href="{{ url_for('students.dashboard') }}" class="btn btn-primary">Go Home</a>
+</div>
+{% endblock %}

@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Enter Performance - AI Attendance Tracker{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h1>📝 Enter Performance Marks</h1>
+    <p class="subtitle">Record student marks and performance</p>
+    
+    <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+        
+        <div class="form-group">
+            {{ form.student_id.label }}
+            {{ form.student_id(class="form-control") }}
+            {% if form.student_id.errors %}
+                <div class="error-msg">{{ form.student_id.errors[0] }}</div>
+            {% endif %}
+            <small class="form-text">Select the student to enter or update marks</small>
+        </div>
+        
+        <div class="form-group">
+            {{ form.subject_name.label }}
+            {{ form.subject_name(class="form-control", placeholder="e.g., Mathematics, Physics, Chemistry") }}
+            {% if form.subject_name.errors %}
+                <div class="error-msg">{{ form.subject_name.errors[0] }}</div>
+            {% endif %}
+            <small class="form-text">Subject name (default: General). If subject exists, marks will be updated.</small>
+        </div>
+        
+        <div class="form-group">
+            {{ form.marks.label }}
+            {{ form.marks(class="form-control", placeholder="0-100", step="0.01") }}
+            {% if form.marks.errors %}
+                <div class="error-msg">{{ form.marks.errors[0] }}</div>
+            {% endif %}
+            <small class="form-text">Enter marks out of 100 (decimal allowed)</small>
+        </div>
+        
+        <div class="ai-info">
+            <p><strong>🤖 AI Feature:</strong> Performance remark will be auto-generated based on marks</p>
+            <ul>
+                <li><strong>≥ 75:</strong> Good ✅</li>
+                <li><strong>50-74:</strong> Average ⚠️</li>
+                <li><strong>&lt; 50:</strong> Needs Improvement ❌</li>
+            </ul>
+            <p class="text-muted"><small>💡 Tip: If the subject already exists for this student, the marks will be updated instead of creating a duplicate.</small></p>
+        </div>
+        
+        <div class="marks-preview" id="marksPreview" style="display: none;">
+            <h4>📊 Preview:</h4>
+            <div class="preview-content">
+                <div class="preview-item">
+                    <label>Marks:</label>
+                    <span id="previewMarks">-</span>/100
+                </div>
+                <div class="preview-item">
+                    <label>Expected Remark:</label>
+                    <span id="previewRemark" class="badge">-</span>
+                </div>
+                <div class="preview-item">
+                    <label>Percentage:</label>
+                    <span id="previewPercentage">-</span>%
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            {{ form.submit(class="btn btn-primary") }}
+            <a href="{{ url_for('performance.view_performance') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<style>
+.ai-info {
+    background: #e3f2fd;
+    border-left: 4px solid #2196f3;
+    padding: 1rem;
+    margin: 1rem 0;
+    border-radius: 4px;
+}
+
+.ai-info ul {
+    margin: 0.5rem 0 0 1.5rem;
+}
+
+.ai-info li {
+    margin-bottom: 0.5rem;
+}
+
+.marks-preview {
+    background: #f5f5f5;
+    border: 2px solid #2196f3;
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+.marks-preview h4 {
+    margin-top: 0;
+    color: #2196f3;
+}
+
+.preview-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+}
+
+.preview-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.preview-item label {
+    font-weight: 600;
+    color: #757575;
+    font-size: 0.875rem;
+}
+
+.preview-item span {
+    font-size: 1.25rem;
+    font-weight: bold;
+}
+
+body.dark-theme .marks-preview {
+    background: #2d2d2d;
+}
+</style>
+
+<script>
+// Live preview of marks and remark
+document.addEventListener('DOMContentLoaded', function() {
+    const marksInput = document.querySelector('input[name="marks"]');
+    const preview = document.getElementById('marksPreview');
+    const previewMarks = document.getElementById('previewMarks');
+    const previewRemark = document.getElementById('previewRemark');
+    const previewPercentage = document.getElementById('previewPercentage');
+    
+    if (marksInput) {
+        marksInput.addEventListener('input', function() {
+            const marks = parseFloat(this.value);
+            
+            if (!isNaN(marks) && marks >= 0 && marks <= 100) {
+                preview.style.display = 'block';
+                previewMarks.textContent = marks.toFixed(2);
+                previewPercentage.textContent = marks.toFixed(2);
+                
+                // Generate remark
+                let remark, remarkClass;
+                if (marks >= 75) {
+                    remark = 'Good';
+                    remarkClass = 'badge-success';
+                } else if (marks >= 50) {
+                    remark = 'Average';
+                    remarkClass = 'badge-warning';
+                } else {
+                    remark = 'Needs Improvement';
+                    remarkClass = 'badge-danger';
+                }
+                
+                previewRemark.textContent = remark;
+                previewRemark.className = 'badge ' + remarkClass;
+            } else {
+                preview.style.display = 'none';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

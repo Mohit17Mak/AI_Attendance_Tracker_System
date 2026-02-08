@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - AI Attendance Tracker{% endblock %}
+{% block content %}
+<div class="dashboard">
+    <h1>📊 Dashboard</h1>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">👥</div>
+            <div class="stat-details">
+                <h3>{{ total_students }}</h3>
+                <p>Total Students</p>
+            </div>
+        </div>
+        <div class="stat-card warning">
+            <div class="stat-icon">⚠️</div>
+            <div class="stat-details">
+                <h3>{{ students_with_shortage }}</h3>
+                <p>Attendance Shortage</p>
+            </div>
+        </div>
+        <div class="stat-card danger">
+            <div class="stat-icon">📉</div>
+            <div class="stat-details">
+                <h3>{{ students_poor_performance }}</h3>
+                <p>Poor Performance</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

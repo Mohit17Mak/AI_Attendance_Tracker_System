@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Performance Detail{% endblock %}
+{% block content %}
+<div class="detail-view">
+    <div class="page-header">
+        <h1>📈 Performance Details</h1>
+        <div class="header-actions">
+            <a href="{{ url_for('performance.view_performance') }}" class="btn btn-secondary">← Back</a>
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('performance.edit_performance', id=performance.id) }}" class="btn btn-warning">✏️ Edit</a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="detail-card">
+        <h2>{{ student.name }} ({{ student.roll_no }})</h2>
+        <div class="detail-grid">
+            <div class="detail-item">
+                <label>Subject:</label>
+                <span>{{ performance.subject_name }}</span>
+            </div>
+            <div class="detail-item">
+                <label>Marks:</label>
+                <span>{{ "%.2f"|format(performance.marks) }}/100</span>
+            </div>
+            <div class="detail-item">
+                <label>Remark:</label>
+                <span class="badge {% if performance.remark == 'Good' %}badge-success{% elif performance.remark == 'Average' %}badge-warning{% else %}badge-danger{% endif %}">
+                    {{ performance.remark }}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}View Student - {{ student.name }}{% endblock %}
+
+{% block content %}
+<div class="detail-view">
+    <div class="page-header">
+        <h1>👤 Student Details</h1>
+        <div class="header-actions">
+            <a href="{{ url_for('students.list_students') }}" class="btn btn-secondary">← Back to List</a>
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('students.edit_student', id=student.id) }}" class="btn btn-warning">✏️ Edit</a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="detail-card">
+        <div class="detail-section">
+            <h2>Basic Information</h2>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <label>Roll Number:</label>
+                    <span class="detail-value">{{ student.roll_no }}</span>
+                </div>
+                <div class="detail-item">
+                    <label>Name:</label>
+                    <span class="detail-value">{{ student.name }}</span>
+                </div>
+                <div class="detail-item">
+                    <label>Semester:</label>
+                    <span class="detail-value">{{ student.semester }}</span>
+                </div>
+                <div class="detail-item">
+                    <label>Created:</label>
+                    <span class="detail-value">{{ student.created_at.strftime('%Y-%m-%d') if student.created_at else 'N/A' }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="detail-section">
+            <h2>Attendance Summary</h2>
+            {% if student.attendance %}
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <label>Total Lectures:</label>
+                    <span class="detail-value">{{ student.attendance.total_lectures }}</span>
+                </div>
+                <div class="detail-item">
+                    <label>Attended:</label>
+                    <span class="detail-value">{{ student.attendance.attended_lectures }}</span>
+                </div>
+                <div class="detail-item">
+                    <label>Percentage:</label>
+                    <span class="detail-value {% if student.attendance.has_shortage %}text-danger{% else %}text-success{% endif %}">
+                        {{ "%.2f"|format(student.attendance.attendance_percentage) }}%
+                    </span>
+                </div>
+            </div>
+            {% if attendance_warning and attendance_warning.has_warning %}
+            <div class="alert alert-warning">
+                {{ attendance_warning.message }}
+            </div>
+            {% endif %}
+            {% else %}
+            <p class="text-muted">No attendance record available</p>
+            {% endif %}
+        </div>
+        
+        <div class="detail-section">
+            <h2>Performance Summary</h2>
+            {% if student.performance_records.count() > 0 %}
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <label>Average Marks:</label>
+                    <span class="detail-value">{{ "%.2f"|format(student.average_marks) }}/100</span>
+                </div>
+                <div class="detail-item">
+                    <label>Subjects:</label>
+                    <span class="detail-value">{{ student.performance_records.count() }}</span>
+                </div>
+            </div>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th>Marks</th>
+                        <th>Remark</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for perf in student.performance_records %}
+                    <tr>
+                        <td>{{ perf.subject_name }}</td>
+                        <td>{{ "%.2f"|format(perf.marks) }}</td>
+                        <td>
+                            {% if perf.remark == 'Good' %}
+                            <span class="badge badge-success">{{ perf.remark }}</span>
+                            {% elif perf.remark == 'Average' %}
+                            <span class="badge badge-warning">{{ perf.remark }}</span>
+                            {% else %}
+                            <span class="badge badge-danger">{{ perf.remark }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted">No performance records available</p>
+            {% endif %}
+        </div>
+        
+        <div class="detail-section">
+            <h2>AI Insights</h2>
+            <div class="insights-summary">
+                <div class="insight-badge">
+                    <span>Attendance: </span>
+                    <strong>{{ insights.attendance_status }}</strong>
+                </div>
+                <div class="insight-badge">
+                    <span>Performance: </span>
+                    <strong>{{ insights.performance_status }}</strong>
+                </div>
+                <div class="insight-badge">
+                    <span>Overall: </span>
+                    <strong>{{ insights.overall_status }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.detail-view {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.detail-card {
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.detail-section {
+    padding: 2rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.detail-section:last-child {
+    border-bottom: none;
+}
+
+.detail-section h2 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: var(--primary-color);
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.detail-item label {
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.detail-value {
+    font-size: 1.125rem;
+    font-weight: 500;
+}
+
+.insights-summary {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.insight-badge {
+    background: var(--bg-color);
+    padding: 1rem;
+    border-radius: 6px;
+    flex: 1;
+    min-width: 150px;
+}
+
+.insight-badge span {
+    color: var(--text-muted);
+}
+
+.insight-badge strong {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 1.125rem;
+}
+</style>
+{% endblock %}

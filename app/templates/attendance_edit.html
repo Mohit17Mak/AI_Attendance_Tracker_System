@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Edit Attendance{% endblock %}
+{% block content %}
+<div class="form-container">
+    <h1>✏️ Edit Attendance</h1>
+    <p class="subtitle">Editing: {{ student.roll_no }} - {{ student.name }}</p>
+    
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.student_id.label }}
+            {{ form.student_id(class="form-control", disabled=true) }}
+            <small class="form-text">Student cannot be changed</small>
+        </div>
+        <div class="form-group">
+            {{ form.total_lectures.label }}
+            {{ form.total_lectures(class="form-control") }}
+            {% if form.total_lectures.errors %}
+                <div class="error-msg">{{ form.total_lectures.errors[0] }}</div>
+            {% endif %}
+        </div>
+        <div class="form-group">
+            {{ form.attended_lectures.label }}
+            {{ form.attended_lectures(class="form-control") }}
+            {% if form.attended_lectures.errors %}
+                <div class="error-msg">{{ form.attended_lectures.errors[0] }}</div>
+            {% endif %}
+        </div>
+        <div class="form-actions">
+            {{ form.submit(class="btn btn-primary") }}
+            <a href="{{ url_for('attendance.view_attendance') }}" class="btn btn-secondary">Cancel</a>
+            <form method="POST" action="{{ url_for('attendance.delete_attendance', id=attendance.id) }}" style="display: inline;" onsubmit="return confirm('Delete this attendance record?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-danger">🗑️ Delete</button>
+            </form>
+        </div>
+    </form>
+</div>
+{% endblock %}

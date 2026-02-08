@@ -1,0 +1,412 @@
+{% extends "base.html" %}
+
+{% block title %}Mark Attendance - AI Attendance Tracker{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h1>✓ Mark Attendance</h1>
+    <p class="subtitle">Update or create attendance records for students</p>
+    
+    <div class="info-banner">
+        <span class="info-icon">💡</span>
+        <div class="info-content">
+            <strong>Smart Update:</strong> If an attendance record already exists for the selected student, 
+            it will be updated. Otherwise, a new record will be created.
+        </div>
+    </div>
+    
+    <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+        
+        <div class="form-group">
+            {{ form.student_id.label }}
+            {{ form.student_id(class="form-control", id="studentSelect") }}
+            {% if form.student_id.errors %}
+                <div class="error-msg">{{ form.student_id.errors[0] }}</div>
+            {% endif %}
+            <small class="form-text">Select the student to mark or update attendance</small>
+        </div>
+        
+        <div id="currentAttendance" class="current-attendance" style="display: none;">
+            <h4>📊 Current Attendance:</h4>
+            <div class="current-info">
+                <div class="current-item">
+                    <label>Total Lectures:</label>
+                    <span id="currentTotal">-</span>
+                </div>
+                <div class="current-item">
+                    <label>Attended:</label>
+                    <span id="currentAttended">-</span>
+                </div>
+                <div class="current-item">
+                    <label>Percentage:</label>
+                    <span id="currentPercentage" class="badge">-</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group col-md-6">
+                {{ form.total_lectures.label }}
+                {{ form.total_lectures(class="form-control", placeholder="e.g., 50", id="totalInput") }}
+                {% if form.total_lectures.errors %}
+                    <div class="error-msg">{{ form.total_lectures.errors[0] }}</div>
+                {% endif %}
+                <small class="form-text">Total number of lectures conducted</small>
+            </div>
+            
+            <div class="form-group col-md-6">
+                {{ form.attended_lectures.label }}
+                {{ form.attended_lectures(class="form-control", placeholder="e.g., 45", id="attendedInput") }}
+                {% if form.attended_lectures.errors %}
+                    <div class="error-msg">{{ form.attended_lectures.errors[0] }}</div>
+                {% endif %}
+                <small class="form-text">Lectures attended by student</small>
+            </div>
+        </div>
+        
+        <div class="attendance-preview" id="attendancePreview" style="display: none;">
+            <h4>📈 New Attendance Preview:</h4>
+            <div class="preview-content">
+                <div class="preview-card">
+                    <div class="preview-label">Attendance</div>
+                    <div class="preview-value" id="previewRatio">-</div>
+                </div>
+                <div class="preview-card">
+                    <div class="preview-label">Percentage</div>
+                    <div class="preview-value" id="previewPercentage">-</div>
+                </div>
+                <div class="preview-card">
+                    <div class="preview-label">Status</div>
+                    <div class="preview-value">
+                        <span id="previewStatus" class="badge">-</span>
+                    </div>
+                </div>
+            </div>
+            <div id="warningMessage" class="warning-message" style="display: none;">
+                <span class="warning-icon">⚠️</span>
+                <div class="warning-content">
+                    <strong>Attendance Shortage Detected!</strong>
+                    <p id="warningText">-</p>
+                    <p id="suggestionText" class="suggestion">-</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="ai-info">
+            <p><strong>🤖 AI Features:</strong></p>
+            <ul>
+                <li>Automatic percentage calculation</li>
+                <li>Warning if attendance falls below 75%</li>
+                <li>AI-generated improvement suggestions</li>
+                <li>Required lectures calculation to reach target</li>
+            </ul>
+        </div>
+        
+        <div class="form-actions">
+            {{ form.submit(class="btn btn-primary") }}
+            <a href="{{ url_for('attendance.view_attendance') }}" class="btn btn-secondary">Cancel</a>
+            <a href="{{ url_for('attendance.add_attendance') }}" class="btn btn-success">➕ Add New Record</a>
+        </div>
+    </form>
+    
+    <div class="help-section">
+        <h4>❓ Help & Tips</h4>
+        <div class="help-grid">
+            <div class="help-item">
+                <strong>Total Lectures:</strong>
+                <p>The total number of lectures that have been conducted for the course/semester.</p>
+            </div>
+            <div class="help-item">
+                <strong>Attended Lectures:</strong>
+                <p>The number of lectures the student has actually attended. Must be ≤ total lectures.</p>
+            </div>
+            <div class="help-item">
+                <strong>Attendance Percentage:</strong>
+                <p>Calculated as (Attended / Total) × 100. A minimum of 75% is typically required.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.info-banner {
+    background: #e3f2fd;
+    border-left: 4px solid #2196f3;
+    padding: 1rem;
+    margin-bottom: 2rem;
+    border-radius: 4px;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.info-icon {
+    font-size: 1.5rem;
+}
+
+.info-content {
+    flex: 1;
+}
+
+.current-attendance {
+    background: var(--bg-color);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin: 1.5rem 0;
+    border-left: 4px solid #ff9800;
+}
+
+.current-attendance h4 {
+    margin-top: 0;
+    color: #ff9800;
+}
+
+.current-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+}
+
+.current-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.current-item label {
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.current-item span {
+    font-size: 1.25rem;
+    font-weight: bold;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.attendance-preview {
+    background: #f5f5f5;
+    border: 2px solid #2196f3;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+}
+
+.attendance-preview h4 {
+    margin-top: 0;
+    color: #2196f3;
+}
+
+.preview-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.preview-card {
+    background: white;
+    padding: 1rem;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.preview-label {
+    font-size: 0.875rem;
+    color: #757575;
+    margin-bottom: 0.5rem;
+}
+
+.preview-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #2196f3;
+}
+
+.warning-message {
+    background: #fff3cd;
+    border-left: 4px solid #ff9800;
+    padding: 1rem;
+    border-radius: 4px;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.warning-icon {
+    font-size: 1.5rem;
+}
+
+.warning-content {
+    flex: 1;
+}
+
+.warning-content strong {
+    color: #e65100;
+}
+
+.warning-content p {
+    margin: 0.5rem 0;
+}
+
+.suggestion {
+    font-style: italic;
+    color: #f57c00;
+}
+
+.ai-info {
+    background: #e8f5e9;
+    border-left: 4px solid #4caf50;
+    padding: 1rem;
+    margin: 1.5rem 0;
+    border-radius: 4px;
+}
+
+.ai-info ul {
+    margin: 0.5rem 0 0 1.5rem;
+}
+
+.help-section {
+    margin-top: 3rem;
+    padding: 1.5rem;
+    background: var(--bg-color);
+    border-radius: 8px;
+}
+
+.help-section h4 {
+    margin-top: 0;
+    color: var(--text-color);
+}
+
+.help-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.help-item {
+    background: var(--card-bg);
+    padding: 1rem;
+    border-radius: 6px;
+}
+
+.help-item strong {
+    color: var(--primary-color);
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.help-item p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+body.dark-theme .attendance-preview {
+    background: #2d2d2d;
+}
+
+body.dark-theme .preview-card {
+    background: #1a1a1a;
+}
+
+body.dark-theme .info-banner {
+    background: #1a3a52;
+}
+
+body.dark-theme .warning-message {
+    background: #4a3c00;
+}
+
+body.dark-theme .ai-info {
+    background: #1a3d1a;
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .current-info,
+    .preview-content {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script>
+// Live attendance calculation and preview
+document.addEventListener('DOMContentLoaded', function() {
+    const totalInput = document.getElementById('totalInput');
+    const attendedInput = document.getElementById('attendedInput');
+    const preview = document.getElementById('attendancePreview');
+    const previewRatio = document.getElementById('previewRatio');
+    const previewPercentage = document.getElementById('previewPercentage');
+    const previewStatus = document.getElementById('previewStatus');
+    const warningMessage = document.getElementById('warningMessage');
+    const warningText = document.getElementById('warningText');
+    const suggestionText = document.getElementById('suggestionText');
+    
+    function updatePreview() {
+        const total = parseInt(totalInput.value) || 0;
+        const attended = parseInt(attendedInput.value) || 0;
+        
+        if (total > 0 && attended >= 0) {
+            const percentage = (attended / total) * 100;
+            
+            preview.style.display = 'block';
+            previewRatio.textContent = `${attended} / ${total}`;
+            previewPercentage.textContent = percentage.toFixed(2) + '%';
+            
+            // Status badge
+            if (percentage >= 75) {
+                previewStatus.textContent = 'Good';
+                previewStatus.className = 'badge badge-success';
+                warningMessage.style.display = 'none';
+            } else {
+                previewStatus.textContent = 'Shortage';
+                previewStatus.className = 'badge badge-danger';
+                
+                // Show warning
+                warningMessage.style.display = 'flex';
+                const shortage = 75 - percentage;
+                warningText.textContent = `Attendance is ${percentage.toFixed(2)}%, which is below the 75% threshold.`;
+                
+                // Generate suggestion
+                if (shortage > 15) {
+                    suggestionText.textContent = 'Critical shortage! Student should attend all upcoming lectures to improve.';
+                } else if (shortage > 10) {
+                    suggestionText.textContent = 'Significant shortage. Try to maintain 100% attendance going forward.';
+                } else {
+                    suggestionText.textContent = 'Minor shortage. A few more attended lectures will help reach the target.';
+                }
+            }
+        } else {
+            preview.style.display = 'none';
+        }
+    }
+    
+    totalInput.addEventListener('input', updatePreview);
+    attendedInput.addEventListener('input', updatePreview);
+    
+    // Validation: attended can't exceed total
+    attendedInput.addEventListener('change', function() {
+        const total = parseInt(totalInput.value) || 0;
+        const attended = parseInt(this.value) || 0;
+        
+        if (attended > total) {
+            alert('Attended lectures cannot exceed total lectures!');
+            this.value = total;
+            updatePreview();
+        }
+    });
+});
+</script>
+{% endblock %}

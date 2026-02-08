@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}View Attendance - AI Attendance Tracker{% endblock %}
+
+{% block content %}
+<div class="attendance-view">
+    <div class="page-header">
+        <h1>📊 Attendance Records</h1>
+        <div class="header-actions">
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('attendance.add_attendance') }}" class="btn btn-success">➕ Add New</a>
+            <a href="{{ url_for('attendance.mark_attendance') }}" class="btn btn-primary">✓ Mark/Update</a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="search-box">
+        <form method="GET" action="{{ url_for('attendance.view_attendance') }}">
+            <input type="text" name="search" placeholder="Search by roll no or name..." 
+                   value="{{ search }}" class="form-control">
+            <button type="submit" class="btn btn-primary">🔍 Search</button>
+            {% if search %}
+            <a href="{{ url_for('attendance.view_attendance') }}" class="btn btn-secondary">Clear</a>
+            {% endif %}
+        </form>
+    </div>
+    
+    {% if attendance_data %}
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Roll No</th>
+                    <th>Name</th>
+                    <th>Total Lectures</th>
+                    <th>Attended</th>
+                    <th>Percentage</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for data in attendance_data %}
+                <tr>
+                    <td><strong>{{ data.student.roll_no }}</strong></td>
+                    <td>{{ data.student.name }}</td>
+                    {% if data.attendance %}
+                    <td>{{ data.attendance.total_lectures }}</td>
+                    <td>{{ data.attendance.attended_lectures }}</td>
+                    <td>
+                        <span class="badge {% if data.attendance.has_shortage %}badge-danger{% else %}badge-success{% endif %}">
+                            {{ "%.2f"|format(data.attendance.attendance_percentage) }}%
+                        </span>
+                    </td>
+                    <td>
+                        {% if data.warning.has_warning %}
+                        <span class="warning-badge">⚠️ Shortage</span>
+                        {% else %}
+                        <span class="success-badge">✓ Good</span>
+                        {% endif %}
+                    </td>
+                    <td class="actions">
+                        <a href="{{ url_for('attendance.view_attendance_detail', id=data.attendance.id) }}" 
+                           class="btn btn-sm btn-info" title="View Details">👁️</a>
+                        {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('attendance.edit_attendance', id=data.attendance.id) }}" 
+                           class="btn btn-sm btn-warning" title="Edit">✏️</a>
+                        <form method="POST" action="{{ url_for('attendance.reset_attendance', id=data.attendance.id) }}" 
+                              style="display: inline;" onsubmit="return confirm('Reset attendance to 0/0?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-secondary" title="Reset">🔄</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('attendance.delete_attendance', id=data.attendance.id) }}" 
+                              style="display: inline;" onsubmit="return confirm('Delete this attendance record?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-danger" title="Delete">🗑️</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                    {% else %}
+                    <td colspan="4" class="text-muted">No attendance recorded</td>
+                    <td class="actions">
+                        {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('attendance.add_attendance') }}" class="btn btn-sm btn-success">➕ Add</a>
+                        {% endif %}
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if pagination.pages > 1 %}
+    <div class="pagination">
+        {% if pagination.has_prev %}
+        <a href="{{ url_for('attendance.view_attendance', page=pagination.prev_num, search=search) }}" 
+           class="btn btn-sm">← Previous</a>
+        {% endif %}
+        
+        <span class="page-info">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+        
+        {% if pagination.has_next %}
+        <a href="{{ url_for('attendance.view_attendance', page=pagination.next_num, search=search) }}" 
+           class="btn btn-sm">Next →</a>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <div class="empty-state">
+        <p>No attendance records found.</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.warning-badge {
+    background: #ff9800;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+}
+
+.success-badge {
+    background: #4caf50;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+}
+</style>
+{% endblock %}

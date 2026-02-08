@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}View Performance - AI Attendance Tracker{% endblock %}
+
+{% block content %}
+<div class="performance-view">
+    <div class="page-header">
+        <h1>📈 Performance Records</h1>
+        <div class="header-actions">
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('performance.add_performance') }}" class="btn btn-success">➕ Add New</a>
+            <a href="{{ url_for('performance.enter_performance') }}" class="btn btn-primary">📝 Enter/Update</a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="search-box">
+        <form method="GET" action="{{ url_for('performance.view_performance') }}">
+            <input type="text" name="search" placeholder="Search by roll no or name..." 
+                   value="{{ search }}" class="form-control">
+            <button type="submit" class="btn btn-primary">🔍 Search</button>
+            {% if search %}
+            <a href="{{ url_for('performance.view_performance') }}" class="btn btn-secondary">Clear</a>
+            {% endif %}
+        </form>
+    </div>
+    
+    {% if performance_data %}
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Roll No</th>
+                    <th>Name</th>
+                    <th>Subjects</th>
+                    <th>Average Marks</th>
+                    <th>Remark</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for data in performance_data %}
+                <tr>
+                    <td><strong>{{ data.student.roll_no }}</strong></td>
+                    <td>{{ data.student.name }}</td>
+                    <td>
+                        {% if data.records %}
+                        <ul class="subject-list">
+                            {% for record in data.records %}
+                            <li>
+                                {{ record.subject_name }}: {{ "%.2f"|format(record.marks) }}
+                                {% if current_user.is_authenticated %}
+                                <a href="{{ url_for('performance.edit_performance', id=record.id) }}" class="edit-link">✏️</a>
+                                {% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <span class="text-muted">No records</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if data.records %}
+                        <strong>{{ "%.2f"|format(data.average) }}</strong>
+                        {% else %}
+                        <span class="text-muted">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if data.remark == 'Good' %}
+                        <span class="badge badge-success">{{ data.remark }}</span>
+                        {% elif data.remark == 'Average' %}
+                        <span class="badge badge-warning">{{ data.remark }}</span>
+                        {% elif data.remark == 'Needs Improvement' %}
+                        <span class="badge badge-danger">{{ data.remark }}</span>
+                        {% else %}
+                        <span class="badge badge-secondary">{{ data.remark }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="actions">
+                        {% if data.records %}
+                        <a href="{{ url_for('performance.view_student_performance', student_id=data.student.id) }}" 
+                           class="btn btn-sm btn-info" title="View All">👁️</a>
+                        {% if current_user.is_authenticated %}
+                        <form method="POST" action="{{ url_for('performance.delete_all_student_performance', student_id=data.student.id) }}" 
+                              style="display: inline;" onsubmit="return confirm('Delete all performance records for this student?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-danger" title="Delete All">🗑️</button>
+                        </form>
+                        {% endif %}
+                        {% else %}
+                        {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('performance.add_performance') }}" class="btn btn-sm btn-success">➕ Add</a>
+                        {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if pagination.pages > 1 %}
+    <div class="pagination">
+        {% if pagination.has_prev %}
+        <a href="{{ url_for('performance.view_performance', page=pagination.prev_num, search=search) }}" 
+           class="btn btn-sm">← Previous</a>
+        {% endif %}
+        
+        <span class="page-info">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+        
+        {% if pagination.has_next %}
+        <a href="{{ url_for('performance.view_performance', page=pagination.next_num, search=search) }}" 
+           class="btn btn-sm">Next →</a>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <div class="empty-state">
+        <p>No performance records found.</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.subject-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.subject-list li {
+    padding: 0.25rem 0;
+}
+
+.edit-link {
+    font-size: 0.875rem;
+    text-decoration: none;
+    margin-left: 0.5rem;
+}
+</style>
+{% endblock %}

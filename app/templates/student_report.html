@@ -1,0 +1,454 @@
+{% extends "base.html" %}
+
+{% block title %}Student Report - {{ student.name }}{% endblock %}
+
+{% block content %}
+<div class="student-report">
+    <div class="report-header">
+        <h1>📄 Student Report</h1>
+        <div class="header-actions">
+            <a href="{{ url_for('students.list_students') }}" class="btn btn-secondary">← Back to List</a>
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('students.edit_student', id=student.id) }}" class="btn btn-warning">✏️ Edit Student</a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="report-card">
+        <div class="student-info">
+            <h2>{{ student.name }}</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <label>Roll Number:</label>
+                    <span>{{ student.roll_no }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Semester:</label>
+                    <span>{{ student.semester }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Enrolled Since:</label>
+                    <span>{{ student.created_at.strftime('%B %d, %Y') if student.created_at else 'N/A' }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="report-section">
+            <h3>📊 Attendance Details</h3>
+            {% if student.attendance %}
+            <div class="attendance-details">
+                <div class="detail-row">
+                    <span>Total Lectures Conducted:</span>
+                    <strong>{{ student.attendance.total_lectures }}</strong>
+                </div>
+                <div class="detail-row">
+                    <span>Lectures Attended:</span>
+                    <strong>{{ student.attendance.attended_lectures }}</strong>
+                </div>
+                <div class="detail-row">
+                    <span>Attendance Percentage:</span>
+                    <strong class="{% if student.attendance.has_shortage %}text-danger{% else %}text-success{% endif %}">
+                        {{ "%.2f"|format(student.attendance.attendance_percentage) }}%
+                    </strong>
+                </div>
+                
+                {% if attendance_warning and attendance_warning.has_warning %}
+                <div class="alert alert-warning">
+                    <strong>{{ attendance_warning.message }}</strong>
+                    <p>{{ attendance_warning.suggestion }}</p>
+                </div>
+                {% else %}
+                <div class="alert alert-success">
+                    <strong>✓ Good Attendance</strong>
+                    <p>{{ attendance_warning.message if attendance_warning else 'Attendance is above threshold' }}</p>
+                </div>
+                {% endif %}
+                
+                {% if required_info and required_info.achievable and required_info.lectures_needed > 0 %}
+                <div class="ai-suggestion">
+                    <h4>🤖 AI Recommendation:</h4>
+                    <p><strong>{{ required_info.message }}</strong></p>
+                    <p class="text-muted">Current: {{ "%.2f"|format(required_info.current_percentage) }}% | Target: {{ required_info.target_percentage }}%</p>
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <p class="text-muted">No attendance records available</p>
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('attendance.add_attendance') }}" class="btn btn-primary">➕ Add Attendance</a>
+            {% endif %}
+            {% endif %}
+        </div>
+        
+        <div class="report-section">
+            <h3>📈 Performance Details</h3>
+            {% if student.performance_records.count() > 0 %}
+            <div class="performance-details">
+                <div class="performance-summary">
+                    <div class="summary-card">
+                        <div class="summary-label">Total Subjects</div>
+                        <div class="summary-value">{{ student.performance_records.count() }}</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Average Marks</div>
+                        <div class="summary-value">{{ "%.2f"|format(student.average_marks) }}/100</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Overall Grade</div>
+                        <div class="summary-value">
+                            {% set avg = student.average_marks %}
+                            {% if avg >= 90 %}A+
+                            {% elif avg >= 80 %}A
+                            {% elif avg >= 70 %}B+
+                            {% elif avg >= 60 %}B
+                            {% elif avg >= 50 %}C
+                            {% else %}F
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Subject</th>
+                            <th>Marks</th>
+                            <th>Percentage</th>
+                            <th>Remark</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in student.performance_records.order_by('subject_name') %}
+                        <tr>
+                            <td><strong>{{ record.subject_name }}</strong></td>
+                            <td>{{ "%.2f"|format(record.marks) }}/100</td>
+                            <td>{{ "%.2f"|format(record.marks) }}%</td>
+                            <td>
+                                {% if record.remark == 'Good' %}
+                                <span class="badge badge-success">{{ record.remark }}</span>
+                                {% elif record.remark == 'Average' %}
+                                <span class="badge badge-warning">{{ record.remark }}</span>
+                                {% else %}
+                                <span class="badge badge-danger">{{ record.remark }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-muted">{{ record.created_at.strftime('%Y-%m-%d') if record.created_at else 'N/A' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                
+                <div class="detail-row">
+                    <span>Average Marks Across All Subjects:</span>
+                    <strong>{{ "%.2f"|format(student.average_marks) }}/100</strong>
+                </div>
+            </div>
+            {% else %}
+            <p class="text-muted">No performance records available</p>
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('performance.add_performance') }}" class="btn btn-primary">➕ Add Performance</a>
+            {% endif %}
+            {% endif %}
+        </div>
+        
+        <div class="report-section">
+            <h3>🤖 AI Insights</h3>
+            <div class="insights-grid">
+                <div class="insight-card">
+                    <label>Attendance Status:</label>
+                    <span class="status-badge status-{{ insights.attendance_status|lower|replace(' ', '-') }}">
+                        {{ insights.attendance_status }}
+                    </span>
+                </div>
+                <div class="insight-card">
+                    <label>Performance Status:</label>
+                    <span class="status-badge status-{{ insights.performance_status|lower|replace(' ', '-') }}">
+                        {{ insights.performance_status }}
+                    </span>
+                </div>
+                <div class="insight-card">
+                    <label>Overall Status:</label>
+                    <span class="status-badge status-{{ insights.overall_status|lower|replace(' ', '-') }}">
+                        {{ insights.overall_status }}
+                    </span>
+                </div>
+            </div>
+            
+            {% if insights.recommendations %}
+            <div class="recommendations">
+                <h4>📋 Recommendations:</h4>
+                <ul>
+                    {% for rec in insights.recommendations %}
+                    <li>{{ rec }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% else %}
+            <div class="alert alert-success">
+                <strong>✓ Excellent Progress!</strong>
+                <p>Student is performing well in both attendance and academics. Keep up the good work!</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="report-section">
+            <h3>🎯 Quick Actions</h3>
+            <div class="action-grid">
+                <a href="{{ url_for('students.view_student', id=student.id) }}" class="action-card">
+                    <span class="action-icon">👁️</span>
+                    <span class="action-label">View Full Profile</span>
+                </a>
+                {% if current_user.is_authenticated %}
+                <a href="{{ url_for('attendance.mark_attendance') }}" class="action-card">
+                    <span class="action-icon">✓</span>
+                    <span class="action-label">Update Attendance</span>
+                </a>
+                <a href="{{ url_for('performance.enter_performance') }}" class="action-card">
+                    <span class="action-icon">📝</span>
+                    <span class="action-label">Enter Marks</span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.student-report {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.report-card {
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.student-info {
+    background: var(--primary-color);
+    color: white;
+    padding: 2rem;
+}
+
+.student-info h2 {
+    margin: 0 0 1rem 0;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.info-item label {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+.info-item span {
+    font-size: 1.125rem;
+    font-weight: bold;
+}
+
+.report-section {
+    padding: 2rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.report-section:last-child {
+    border-bottom: none;
+}
+
+.report-section h3 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: var(--primary-color);
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.ai-suggestion {
+    background: #e3f2fd;
+    border-left: 4px solid #2196f3;
+    padding: 1rem;
+    margin-top: 1rem;
+    border-radius: 4px;
+}
+
+.ai-suggestion h4 {
+    margin-top: 0;
+    color: #1976d2;
+}
+
+.performance-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.summary-card {
+    background: var(--bg-color);
+    padding: 1rem;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.summary-label {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.summary-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.insights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.insight-card {
+    background: var(--bg-color);
+    padding: 1rem;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.insight-card label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: var(--text-muted);
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.875rem;
+}
+
+.status-excellent { background: #4caf50; color: white; }
+.status-good { background: #8bc34a; color: white; }
+.status-fair { background: #ff9800; color: white; }
+.status-poor { background: #f44336; color: white; }
+.status-average { background: #ff9800; color: white; }
+.status-needs-attention { background: #f44336; color: white; }
+.status-outstanding { background: #4caf50; color: white; }
+.status-satisfactory { background: #2196f3; color: white; }
+.status-requires-intervention { background: #f44336; color: white; }
+.status-unknown { background: #9e9e9e; color: white; }
+
+.recommendations {
+    background: #fff3cd;
+    border-left: 4px solid #ff9800;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-top: 1rem;
+}
+
+.recommendations h4 {
+    margin-top: 0;
+}
+
+.recommendations ul {
+    margin-bottom: 0;
+}
+
+.action-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1rem;
+}
+
+.action-card {
+    background: var(--bg-color);
+    padding: 1.5rem;
+    border-radius: 8px;
+    text-align: center;
+    text-decoration: none;
+    color: var(--text-color);
+    transition: all 0.3s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.action-card:hover {
+    background: var(--primary-color);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.action-icon {
+    font-size: 2rem;
+}
+
+.action-label {
+    font-weight: 500;
+}
+
+body.dark-theme .ai-suggestion {
+    background: #1a3a52;
+    border-left-color: #2196f3;
+}
+
+body.dark-theme .recommendations {
+    background: #4a3c00;
+    border-left-color: #ff9800;
+}
+
+@media (max-width: 768px) {
+    .report-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
