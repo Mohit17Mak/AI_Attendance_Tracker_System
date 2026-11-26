@@ -59,5 +59,5 @@ CREATE TABLE IF NOT EXISTS users (
 -- Insert default admin user (password: admin123)
 -- Password hash for 'admin123' using Werkzeug
 INSERT INTO users (username, password_hash) VALUES 
-('admin', 'scrypt:32768:8:1$xQZ9jK8mHvLXrYwP$f8e5a2c1d9b4f7e6a3c8d5b2f9e1a4c7d8b3f6e9a2c5d8b1f4e7a3c6d9b2f5e8a1c4d7b3f6e9a2c5d8b1f4e7a3c6')
+('admin', 'scrypt:32768:8:1$KYsBZdmmKn3RYZaJ$d677fcc0146961e1373cc3bf35769e277330de538a94586d60717d8f3eb82518092dea94e8f3ecf3fc91a5a71f2aca9c36198a42b29190c00576e5b121b17397')
 ON DUPLICATE KEY UPDATE password_hash = password_hash;

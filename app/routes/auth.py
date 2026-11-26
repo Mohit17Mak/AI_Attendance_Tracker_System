@@ -32,7 +32,9 @@ def login():
         flash(f'Welcome back, {user.username}!', 'success')
         
         next_page = request.args.get('next')
-        if not next_page or not next_page.startswith('/'):
+        # Allow only local paths (blocks //host and /\host redirects)
+        if (not next_page or not next_page.startswith('/')
+                or next_page.startswith('//') or '\\' in next_page):
             next_page = url_for('students.dashboard')
         
         return redirect(next_page)

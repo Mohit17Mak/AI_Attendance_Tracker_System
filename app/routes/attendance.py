@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required
 from flask_wtf import FlaskForm
 from wtforms import SelectField, IntegerField, SubmitField
-from wtforms.validators import DataRequired, NumberRange, ValidationError
+from wtforms.validators import DataRequired, InputRequired, NumberRange, ValidationError
 from app import db
 from app.models import Student, Attendance
 from app.services.ai_engine import AIEngine
@@ -13,21 +13,23 @@ class AttendanceForm(FlaskForm):
     """Form for marking/editing attendance"""
     student_id = SelectField('Select Student', coerce=int, validators=[DataRequired()])
     total_lectures = IntegerField('Total Lectures Conducted', validators=[
-        DataRequired(message='Total lectures is required'),
+        InputRequired(message='Total lectures is required'),
         NumberRange(min=0, message='Total lectures cannot be negative')
     ])
     attended_lectures = IntegerField('Lectures Attended', validators=[
-        DataRequired(message='Attended lectures is required'),
+        InputRequired(message='Attended lectures is required'),
         NumberRange(min=0, message='Attended lectures cannot be negative')
     ])
     submit = SubmitField('Save Attendance')
     
     def validate_attended_lectures(self, field):
         """Validate that attended lectures don't exceed total"""
-        if field.data > self.total_lectures.data:
+        total = self.total_lectures.data
+        if field.data is not None and total is not None and field.data > total:
             raise ValidationError('Attended lectures cannot exceed total lectures')
 
 @bp.route('/view')
+@login_required
 def view_attendance():
     """View all attendance records (READ)"""
     page = request.args.get('page', 1, type=int)
@@ -171,6 +173,7 @@ def mark_attendance():
     return render_template('attendance_mark.html', form=form)
 
 @bp.route('/detail/<int:id>')
+@login_required
 def view_attendance_detail(id):
     """View single attendance record detail (READ)"""
     attendance = Attendance.query.get_or_404(id)

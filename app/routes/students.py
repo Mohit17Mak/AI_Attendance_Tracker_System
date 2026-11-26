@@ -38,6 +38,7 @@ class StudentForm(FlaskForm):
                 raise ValidationError('Roll number already exists')
 
 @bp.route('/dashboard')
+@login_required
 def dashboard():
     """Dashboard with statistics"""
     total_students = Student.query.count()
@@ -61,6 +62,7 @@ def dashboard():
                          students_poor_performance=students_poor_performance)
 
 @bp.route('/students')
+@login_required
 def list_students():
     """List all students with pagination and search"""
     page = request.args.get('page', 1, type=int)
@@ -138,6 +140,7 @@ def add_student():
     return render_template('student_add.html', form=form)
 
 @bp.route('/students/view/<int:id>')
+@login_required
 def view_student(id):
     """View single student details (READ)"""
     student = Student.query.get_or_404(id)
@@ -220,6 +223,7 @@ def delete_student(id):
     return redirect(url_for('students.list_students'))
 
 @bp.route('/students/report/<int:id>')
+@login_required
 def student_report(id):
     """Detailed student report"""
     student = Student.query.get_or_404(id)
@@ -249,6 +253,7 @@ def student_report(id):
                          required_info=required_info)
 
 @bp.route('/students/export')
+@login_required
 def export_students():
     """Export students data to CSV"""
     import csv

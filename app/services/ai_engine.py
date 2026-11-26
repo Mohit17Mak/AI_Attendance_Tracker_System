@@ -8,6 +8,8 @@ with actual LLM integration in the future.
 Future Enhancement: Replace rule-based methods with OpenAI/Anthropic API calls
 """
 
+import math
+
 from app.config import Config
 
 class AIEngine:
@@ -167,7 +169,7 @@ class AIEngine:
             lectures_needed = float('inf')
             achievable = False
         else:
-            lectures_needed = max(0, int(numerator / denominator) + 1)
+            lectures_needed = max(0, math.ceil(numerator / denominator))
             achievable = lectures_needed < 100  # Reasonable threshold
         
         return {

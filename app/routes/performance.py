@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required
 from flask_wtf import FlaskForm
 from wtforms import SelectField, DecimalField, StringField, SubmitField
-from wtforms.validators import DataRequired, NumberRange
+from wtforms.validators import DataRequired, InputRequired, NumberRange
 from app import db
 from app.models import Student, Performance
 from app.services.ai_engine import AIEngine
@@ -14,12 +14,13 @@ class PerformanceForm(FlaskForm):
     student_id = SelectField('Select Student', coerce=int, validators=[DataRequired()])
     subject_name = StringField('Subject Name', validators=[DataRequired()], default='General')
     marks = DecimalField('Marks (out of 100)', validators=[
-        DataRequired(message='Marks are required'),
+        InputRequired(message='Marks are required'),
         NumberRange(min=0, max=100, message='Marks must be between 0 and 100')
     ])
     submit = SubmitField('Save Marks')
 
 @bp.route('/view')
+@login_required
 def view_performance():
     """View all performance records (READ)"""
     page = request.args.get('page', 1, type=int)
@@ -163,6 +164,7 @@ def enter_performance():
     return render_template('performance_enter.html', form=form)
 
 @bp.route('/detail/<int:id>')
+@login_required
 def view_performance_detail(id):
     """View single performance record detail (READ)"""
     performance = Performance.query.get_or_404(id)
@@ -173,6 +175,7 @@ def view_performance_detail(id):
                          student=student)
 
 @bp.route('/student/<int:student_id>')
+@login_required
 def view_student_performance(student_id):
     """View all performance records for a specific student (READ)"""
     student = Student.query.get_or_404(student_id)
