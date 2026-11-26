@@ -382,27 +382,20 @@ Solution: Ensure database is created
 - Overall status assessment
 - Recommendations based on performance and attendance
 
-## 🔧 Future Enhancements
+## 🤖 Hybrid AI Engine Architecture
 
-The AI Engine is designed to be easily upgraded:
+`app/services/ai_engine.py` combines **Google Gemini (`google-genai` Interactions API)** for personalized natural-language student coaching recommendations with **deterministic rule-based analytics and algebraic attendance recovery projections** as an instant, zero-downtime fallback whenever `GEMINI_API_KEY` is omitted:
 
 ```python
-# Current (Rule-based)
-def generate_performance_remark(marks):
-    if marks >= 75:
-        return "Good"
-    # ...
+from google import genai
 
-# Future (LLM-powered)
-def generate_performance_remark(marks):
-    response = anthropic_client.messages.create(
-        model="claude-3-sonnet",
-        messages=[{
-            "role": "user",
-            "content": f"Generate remark for {marks}/100"
-        }]
-    )
-    return response.content[0].text
+client = genai.Client(api_key=Config.GEMINI_API_KEY)
+interaction = client.interactions.create(
+    model=Config.GEMINI_MODEL,
+    system_instruction="You are an academic mentor...",
+    input=student_metrics_summary,
+    store=False,
+)
 ```
 
 ## 📧 Support

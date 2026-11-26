@@ -37,3 +37,7 @@ class Config:
     ATTENDANCE_WARNING_THRESHOLD = 75.0
     PERFORMANCE_GOOD_THRESHOLD = 75.0
     PERFORMANCE_AVERAGE_THRESHOLD = 50.0
+
+    # Gemini AI settings (optional; falls back to deterministic rules when unset)
+    GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+    GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-4-hydrogen')

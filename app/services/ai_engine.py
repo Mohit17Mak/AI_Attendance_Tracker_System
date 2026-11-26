@@ -1,204 +1,201 @@
 """
 AI Engine Service Module
 
-This module contains AI-assisted logic for the attendance and performance tracker.
-Currently implements rule-based logic, but designed to be easily replaceable
-with actual LLM integration in the future.
-
-Future Enhancement: Replace rule-based methods with OpenAI/Anthropic API calls
+Hybrid AI-powered analytics and recommendation engine combining Google Gemini
+(`google-genai` Interactions API) for personalized student coaching insights with
+deterministic rule-based analytics and algebraic attendance projections as a
+guaranteed, zero-downtime fallback.
 """
 
 from app.config import Config
 
+_gemini_client = None
+_gemini_checked = False
+
+
+def _get_gemini_client():
+    """Lazily initialize the Google GenAI client when GEMINI_API_KEY is configured."""
+    global _gemini_client, _gemini_checked
+    if _gemini_checked:
+        return _gemini_client
+
+    _gemini_checked = True
+    if not Config.GEMINI_API_KEY:
+        return None
+
+    try:
+        from google import genai
+
+        _gemini_client = genai.Client(api_key=Config.GEMINI_API_KEY)
+    except Exception:
+        _gemini_client = None
+
+    return _gemini_client
+
+
+def _generate_gemini_advice(system_instruction: str, prompt: str) -> str | None:
+    """Call Gemini Interactions API for concise academic coaching feedback."""
+    client = _get_gemini_client()
+    if client is None:
+        return None
+
+    try:
+        interaction = client.interactions.create(
+            model=Config.GEMINI_MODEL,
+            system_instruction=system_instruction,
+            input=prompt,
+            store=False,
+        )
+        text = (interaction.output_text or "").strip()
+        return text if text else None
+    except Exception:
+        return None
+
+
 class AIEngine:
     """
-    AI-powered analytics and recommendation engine
-    
-    This class is designed as a service layer that can be upgraded
-    to use real AI/LLM APIs without modifying the rest of the application.
+    Hybrid AI-powered analytics and recommendation engine.
+
+    Combines deterministic threshold classifications and exact attendance recovery
+    math with Google Gemini (`gemini-4-hydrogen`) natural-language coaching
+    suggestions whenever `GEMINI_API_KEY` is provided.
     """
-    
+
     @staticmethod
     def generate_performance_remark(marks: float) -> str:
-        """
-        Generate performance remark based on marks
-        
-        Args:
-            marks: Student's marks (0-100)
-            
-        Returns:
-            str: Performance remark
-            
-        Future: Replace with LLM prompt:
-            "Generate a constructive remark for a student who scored {marks}/100"
-        """
+        """Classify subject marks (0-100) into standardized academic remarks."""
         if marks >= Config.PERFORMANCE_GOOD_THRESHOLD:
             return "Good"
         elif marks >= Config.PERFORMANCE_AVERAGE_THRESHOLD:
             return "Average"
         else:
             return "Needs Improvement"
-    
+
     @staticmethod
     def generate_attendance_warning(attendance_percentage: float) -> dict:
-        """
-        Generate attendance warning and suggestions
-        
-        Args:
-            attendance_percentage: Current attendance percentage
-            
-        Returns:
-            dict: Warning information with message and severity
-            
-        Future: Replace with LLM analysis for personalized suggestions
-        """
+        """Generate attendance shortage alert and actionable guidance."""
         if attendance_percentage < Config.ATTENDANCE_WARNING_THRESHOLD:
             shortage = Config.ATTENDANCE_WARNING_THRESHOLD - attendance_percentage
             return {
                 'has_warning': True,
                 'severity': 'high' if shortage > 10 else 'medium',
                 'message': f'⚠ Attendance Shortage: {attendance_percentage:.2f}%',
-                'suggestion': AIEngine._get_attendance_suggestion(shortage)
+                'suggestion': AIEngine._get_attendance_suggestion(shortage, attendance_percentage),
             }
         return {
             'has_warning': False,
             'severity': 'none',
             'message': 'Attendance is satisfactory',
-            'suggestion': 'Keep up the good work!'
+            'suggestion': 'Keep up the good work!',
         }
-    
+
     @staticmethod
-    def _get_attendance_suggestion(shortage: float) -> str:
-        """
-        Generate attendance improvement suggestion
-        
-        Future: Use LLM to generate personalized, encouraging suggestions
-        """
+    def _get_attendance_suggestion(shortage: float, attendance_percentage: float | None = None) -> str:
+        """Generate personalized attendance guidance via Gemini with rule-based fallback."""
+        pct_str = f"{attendance_percentage:.2f}%" if attendance_percentage is not None else f"{75.0 - shortage:.2f}%"
+        llm_tip = _generate_gemini_advice(
+            system_instruction=(
+                "You are an academic advisor. Write ONE concise, encouraging sentence "
+                "(under 22 words) advising a college student whose attendance fell below 75%."
+            ),
+            prompt=f"Current attendance: {pct_str} ({shortage:.2f}% below the 75% requirement).",
+        )
+        if llm_tip:
+            return llm_tip
+
         if shortage > 15:
             return "Critical shortage! Attend all upcoming lectures to improve."
         elif shortage > 10:
             return "Significant shortage. Try to maintain 100% attendance going forward."
         else:
             return "Minor shortage. A few more attended lectures will help."
-    
+
     @staticmethod
     def validate_student_data(roll_no: str, name: str, semester: int) -> dict:
-        """
-        AI-assisted validation of student data
-        
-        Args:
-            roll_no: Student roll number
-            name: Student name
-            semester: Student semester
-            
-        Returns:
-            dict: Validation results with suggestions
-            
-        Future: Use LLM to detect format issues, suggest corrections
-        """
+        """Validate student enrollment fields and surface formatting suggestions."""
         errors = []
         suggestions = []
-        
-        # Roll number validation
+
         if not roll_no or len(roll_no.strip()) == 0:
             errors.append("Roll number is required")
         elif len(roll_no) < 3:
             suggestions.append("Roll number seems short. Typical format: ABC123")
-        
-        # Name validation
+
         if not name or len(name.strip()) == 0:
             errors.append("Name is required")
         elif len(name.strip()) < 3:
             suggestions.append("Name seems very short. Please verify.")
         elif not any(char.isalpha() for char in name):
             errors.append("Name must contain alphabetic characters")
-        
-        # Semester validation
+
         if semester < 1 or semester > 8:
             errors.append("Semester must be between 1 and 8")
-        
+
         return {
             'is_valid': len(errors) == 0,
             'errors': errors,
-            'suggestions': suggestions
+            'suggestions': suggestions,
         }
-    
+
     @staticmethod
-    def calculate_required_attendance(current_total: int, current_attended: int, 
-                                     target_percentage: float = 75.0) -> dict:
+    def calculate_required_attendance(
+        current_total: int,
+        current_attended: int,
+        target_percentage: float = 75.0,
+    ) -> dict:
         """
-        Calculate lectures needed to reach target attendance
-        
-        Args:
-            current_total: Total lectures conducted so far
-            current_attended: Lectures attended so far
-            target_percentage: Target attendance percentage (default 75%)
-            
-        Returns:
-            dict: Analysis with required lectures
-            
-        Future: Use LLM to provide motivational messaging
+        Calculate continuous lectures required to reach `target_percentage`:
+        (attended + x) / (total + x) = target / 100
         """
         if current_total == 0:
             return {
                 'achievable': True,
                 'lectures_needed': 0,
-                'message': 'No lectures conducted yet'
+                'message': 'No lectures conducted yet',
             }
-        
+
         current_percentage = (current_attended * 100.0) / current_total
-        
+
         if current_percentage >= target_percentage:
             return {
                 'achievable': True,
                 'lectures_needed': 0,
                 'current_percentage': current_percentage,
-                'message': f'Already at {current_percentage:.2f}%. Great job!'
+                'message': f'Already at {current_percentage:.2f}%. Great job!',
             }
-        
-        # Calculate lectures needed
-        # Formula: (attended + x) / (total + x) = target/100
-        # Solving: x = (target * total - 100 * attended) / (100 - target)
-        
+
         numerator = (target_percentage * current_total) - (100 * current_attended)
         denominator = 100 - target_percentage
-        
+
         if denominator == 0:
             lectures_needed = float('inf')
             achievable = False
         else:
             lectures_needed = max(0, int(numerator / denominator) + 1)
-            achievable = lectures_needed < 100  # Reasonable threshold
-        
+            achievable = lectures_needed < 100
+
         return {
             'achievable': achievable,
             'lectures_needed': lectures_needed,
             'current_percentage': current_percentage,
             'target_percentage': target_percentage,
-            'message': f'Attend next {lectures_needed} lectures continuously to reach {target_percentage}%'
+            'message': f'Attend next {lectures_needed} lectures continuously to reach {target_percentage}%',
         }
-    
+
     @staticmethod
     def generate_student_insights(student) -> dict:
         """
-        Generate comprehensive insights about a student
-        
-        Args:
-            student: Student model instance
-            
-        Returns:
-            dict: Comprehensive insights
-            
-        Future: Use LLM to generate natural language report
+        Generate comprehensive academic insights combining deterministic risk
+        classification with Gemini-generated coaching recommendations when configured.
         """
         insights = {
             'attendance_status': 'Unknown',
             'performance_status': 'Unknown',
             'overall_status': 'Unknown',
-            'recommendations': []
+            'recommendations': [],
         }
-        
-        # Attendance insights
+
+        att_pct = None
         if student.attendance:
             att_pct = student.attendance.attendance_percentage
             if att_pct >= 90:
@@ -210,8 +207,7 @@ class AIEngine:
             else:
                 insights['attendance_status'] = 'Poor'
                 insights['recommendations'].append('Improve attendance immediately')
-        
-        # Performance insights
+
         avg_marks = student.average_marks
         if avg_marks >= 75:
             insights['performance_status'] = 'Excellent'
@@ -221,15 +217,27 @@ class AIEngine:
         else:
             insights['performance_status'] = 'Needs Attention'
             insights['recommendations'].append('Requires academic support')
-        
-        # Overall status
-        if insights['attendance_status'] in ['Excellent', 'Good'] and \
-           insights['performance_status'] in ['Excellent']:
+
+        if insights['attendance_status'] in ['Excellent', 'Good'] and insights['performance_status'] == 'Excellent':
             insights['overall_status'] = 'Outstanding'
-        elif insights['attendance_status'] in ['Poor'] or \
-             insights['performance_status'] == 'Needs Attention':
+        elif insights['attendance_status'] == 'Poor' or insights['performance_status'] == 'Needs Attention':
             insights['overall_status'] = 'Requires Intervention'
         else:
             insights['overall_status'] = 'Satisfactory'
-        
+
+        llm_recommendation = _generate_gemini_advice(
+            system_instruction=(
+                "You are an academic mentor. Provide ONE actionable, specific study & attendance "
+                "recommendation in 1-2 sentences based on the student's metrics."
+            ),
+            prompt=(
+                f"Student: {getattr(student, 'name', 'Student')}, Semester {getattr(student, 'semester', 'N/A')}. "
+                f"Attendance: {f'{att_pct:.2f}%' if att_pct is not None else 'N/A'} ({insights['attendance_status']}). "
+                f"Average Marks: {avg_marks:.2f}% ({insights['performance_status']}). "
+                f"Overall Status: {insights['overall_status']}."
+            ),
+        )
+        if llm_recommendation:
+            insights['recommendations'].insert(0, llm_recommendation)
+
         return insights
