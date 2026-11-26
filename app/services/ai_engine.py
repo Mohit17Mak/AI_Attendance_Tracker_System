@@ -215,7 +215,9 @@ class AIEngine:
         
         # Performance insights
         avg_marks = student.average_marks
-        if avg_marks >= 75:
+        if not student.performance_records.count():
+            pass  # no marks yet: leave status as Unknown
+        elif avg_marks >= 75:
             insights['performance_status'] = 'Excellent'
         elif avg_marks >= 50:
             insights['performance_status'] = 'Average'
@@ -231,7 +233,8 @@ class AIEngine:
         elif insights['attendance_status'] in ['Poor'] or \
              insights['performance_status'] == 'Needs Attention':
             insights['overall_status'] = 'Requires Intervention'
-        else:
+        elif 'Unknown' not in (insights['attendance_status'],
+                               insights['performance_status']):
             insights['overall_status'] = 'Satisfactory'
         
         return insights

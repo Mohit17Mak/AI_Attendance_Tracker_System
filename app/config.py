@@ -12,6 +12,10 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
     DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
     
+    # AI settings (optional: leave the key empty to use rule-based logic only)
+    GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
+    GEMINI_MODEL = os.environ.get('GEMINI_MODEL') or 'gemini-3.8-flash'
+
     # Database settings
     DB_HOST = os.environ.get('DB_HOST', 'localhost')
     DB_PORT = os.environ.get('DB_PORT', '3306')

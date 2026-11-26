@@ -154,6 +154,7 @@
         
         <div class="report-section">
             <h3>🤖 AI Insights</h3>
+            {% include '_ai_button.html' %}
             <div class="insights-grid">
                 <div class="insight-card">
                     <label>Attendance Status:</label>
@@ -184,7 +185,7 @@
                     {% endfor %}
                 </ul>
             </div>
-            {% else %}
+            {% elif insights.overall_status == 'Outstanding' %}
             <div class="alert alert-success">
                 <strong>✓ Excellent Progress!</strong>
                 <p>Student is performing well in both attendance and academics. Keep up the good work!</p>

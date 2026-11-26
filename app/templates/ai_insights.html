@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}AI Insights - {{ student.name }}{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h1>🤖 Student Insights</h1>
+    <p class="subtitle"><strong>{{ student.roll_no }} - {{ student.name }}</strong></p>
+
+    {% if ai %}
+        <p><span class="badge badge-success">AI-generated</span> Review before acting; AI can be wrong.</p>
+        <p>{{ ai.summary }}</p>
+        {% for title, items in [('Strengths', ai.strengths), ('Concerns', ai.concerns), ('Action Plan', ai.action_plan)] %}
+            {% if items %}
+            <h3>{{ title }}</h3>
+            <ul>{% for item in items %}<li>{{ item }}</li>{% endfor %}</ul>
+            {% endif %}
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-warning">AI insights unavailable: {{ error }} Showing rule-based results.</div>
+        <p>Attendance: <strong>{{ rules.attendance_status }}</strong></p>
+        <p>Performance: <strong>{{ rules.performance_status }}</strong></p>
+        <p>Overall: <strong>{{ rules.overall_status }}</strong></p>
+        {% if rules.recommendations %}
+        <ul>{% for item in rules.recommendations %}<li>{{ item }}</li>{% endfor %}</ul>
+        {% endif %}
+    {% endif %}
+
+    <div class="form-actions">
+        <a href="{{ url_for('students.view_student', id=student.id) }}" class="btn btn-secondary">← Back to Student</a>
+    </div>
+</div>
+{% endblock %}

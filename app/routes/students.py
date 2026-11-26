@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_required
 from flask_wtf import FlaskForm
 from wtforms import StringField, IntegerField, SubmitField
@@ -6,6 +6,7 @@ from wtforms.validators import DataRequired, Length, NumberRange, ValidationErro
 from app import db
 from app.models import Student, Attendance, Performance
 from app.services.ai_engine import AIEngine
+from app.services.llm_insights import AIUnavailable, build_payload, generate_insight
 from app.config import Config
 
 bp = Blueprint('students', __name__)
@@ -53,7 +54,8 @@ def dashboard():
     # Students with poor performance
     students_poor_performance = 0
     for student in all_students:
-        if student.average_marks < Config.PERFORMANCE_AVERAGE_THRESHOLD:
+        if (student.performance_records.count()
+                and student.average_marks < Config.PERFORMANCE_AVERAGE_THRESHOLD):
             students_poor_performance += 1
     
     return render_template('dashboard.html',
@@ -251,6 +253,28 @@ def student_report(id):
                          insights=insights,
                          attendance_warning=attendance_warning,
                          required_info=required_info)
+
+@bp.route('/students/ai-insights/<int:id>', methods=['POST'])
+@login_required
+def ai_insights(id):
+    """On-demand LLM insights with rule-based fallback"""
+    student = Student.query.get_or_404(id)
+    ai, error = None, None
+
+    try:
+        ai = generate_insight(
+            build_payload(student),
+            current_app.config.get('GEMINI_API_KEY'),
+            current_app.config.get('GEMINI_MODEL'),
+        )
+    except AIUnavailable as exc:
+        error = str(exc)
+
+    return render_template('ai_insights.html',
+                         student=student,
+                         ai=ai,
+                         error=error,
+                         rules=AIEngine.generate_student_insights(student))
 
 @bp.route('/students/export')
 @login_required
